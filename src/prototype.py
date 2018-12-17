@@ -1,5 +1,6 @@
 from upvalue import Upvalue
 from local_var import LocalVar
+from opcode import Instruction
 
 
 class Prototype:
@@ -88,7 +89,10 @@ class Prototype:
     def print_code(self):
         for i in range(len(self.code)):
             line = self.line_infos[i] if len(self.line_infos) > 0 else '-'
-            print('\t%d\t[%s]\t0x%08x' % (i+1, line, self.code[i]))
+            # print('\t%d\t[%s]\t0x%08x' % (i+1, line, self.code[i]))
+            inst = Instruction(self.code[i])
+            print('\t%d\t[%s]\t' % (i+1, line), end='')
+            inst.dump()
 
     def print_detail(self):
         # constants

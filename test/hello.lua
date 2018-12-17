@@ -1,5 +1,1 @@
-function test()
-    print("Hello World")
-end
-
-test()
+print("Hello World")
