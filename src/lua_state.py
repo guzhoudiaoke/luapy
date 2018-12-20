@@ -1,6 +1,10 @@
 from lua_stack import LuaStack
 from lua_type import LuaType
 from lua_value import LuaValue
+from arith_op import ArithOp
+from arithmetic import Arithmetic
+from cmp_op import CmpOp
+from compare import Compare
 
 
 class LuaState:
@@ -56,7 +60,8 @@ class LuaState:
             for i in range(-n):
                 self.stack.push(None)
 
-    def type_name(self, tp):
+    @staticmethod
+    def type_name(tp):
         if tp == LuaType.NONE:
             return 'no value'
         elif tp == LuaType.NIL:
@@ -161,15 +166,53 @@ class LuaState:
         for i in range(1, top+1):
             t = self.type(i)
             if t == LuaType.BOOLEAN:
-                print('[%s]' % 'true' if self.to_boolean(i) else 'false', end='')
+                print('[%s]' % ('true' if self.to_boolean(i) else 'false'), end='')
             elif t == LuaType.NUMBER:
                 if self.is_integer(i):
                     print('[%d]' % self.to_integer(i), end='')
                 else:
-                    print(self.to_integer(i), end='')
+                    print('[%g]' % self.to_number(i), end='')
             elif t == LuaType.STRING:
                 print('["%s"]' % self.to_string(i), end='')
             else:
-                print('[%s]' % self.type_name(t), end='')
+                print('[%s]' % LuaState.type_name(t), end='')
 
         print()
+
+    def arith(self, op):
+        b = self.stack.pop()
+        a = self.stack.pop() if (op != ArithOp.UNM and op != ArithOp.BNOT) else b
+        result = Arithmetic.arith(a, op, b)
+        assert(result is not None)
+        self.stack.push(result)
+
+    def len(self, idx):
+        val = self.stack.get(idx)
+        assert(val is not None)
+        self.stack.push(len(val))
+
+    def concat(self, n):
+        if n == 0:
+            self.stack.push('')
+        elif n >= 2:
+            for i in range(1, n):
+                assert(self.is_string(-1) and self.is_string(-2))
+                s2 = self.to_string(-1)
+                s1 = self.to_string(-2)
+                self.stack.pop()
+                self.stack.pop()
+                self.stack.push(s1+s2)
+
+    def compare(self, idx1, op, idx2):
+        if not self.stack.is_valid(idx1) or not self.stack.is_valid(idx2):
+            return False
+
+        a = self.stack.get(idx1)
+        b = self.stack.get(idx2)
+
+        if op == CmpOp.EQ:
+            return Compare.eq(a, b)
+        elif op == CmpOp.LT:
+            return Compare.lt(a, b)
+        elif op == CmpOp.LE:
+            return Compare.le(a, b)

@@ -22,3 +22,39 @@ class LuaValue:
             return val
         else:
             return True
+
+    @staticmethod
+    def is_integer(val):
+        return val == int(val)
+
+    @staticmethod
+    def parse_integer(s):
+        try:
+            return int(s)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def parse_float(s):
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def to_integer(val):
+        if isinstance(val, int):
+            return val
+        elif isinstance(val, float):
+            return int(val) if LuaValue.is_integer(val) else None
+        elif isinstance(val, str):
+            return LuaValue.parse_integer(val)
+
+    @staticmethod
+    def to_float(val):
+        if isinstance(val, float):
+            return val
+        elif isinstance(val, int):
+            return float(val)
+        elif isinstance(val, str):
+            return LuaValue.parse_float(val)

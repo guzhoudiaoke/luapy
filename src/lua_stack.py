@@ -17,7 +17,7 @@ class LuaStack:
 
     def pop(self):
         ret = self.slots[-1]
-        self.slots = self.slots[:-1]
+        self.slots.pop()
         return ret
 
     def abs_index(self, idx):
@@ -32,14 +32,12 @@ class LuaStack:
     def get(self, idx):
         if not self.is_valid(idx):
             return None
-        idx = self.abs_index(idx)
-        return self.slots[idx-1]
+        return self.slots[self.abs_index(idx)-1]
 
     def set(self, idx, val):
         if not self.is_valid(idx):
             raise Exception('Invalid Index')
-        idx = self.abs_index(idx)
-        self.slots[idx-1] = val
+        self.slots[self.abs_index(idx)-1] = val
 
     def reverse(self, begin, end):
         while begin < end:
