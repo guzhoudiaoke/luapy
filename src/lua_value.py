@@ -4,6 +4,7 @@ from lua_type import LuaType
 class LuaValue:
     @staticmethod
     def type_of(val):
+        from lua_table import LuaTable
         if val is None:
             return LuaType.NIL
         elif isinstance(val, bool):
@@ -12,6 +13,8 @@ class LuaValue:
             return LuaType.NUMBER
         elif isinstance(val, str):
             return LuaType.STRING
+        elif isinstance(val, LuaTable):
+            return LuaType.TABLE
         raise Exception('Type not support')
 
     @staticmethod
@@ -58,3 +61,16 @@ class LuaValue:
             return float(val)
         elif isinstance(val, str):
             return LuaValue.parse_float(val)
+
+    @staticmethod
+    def float2integer(val):
+        if isinstance(val, float):
+            if LuaValue.is_integer(val):
+                return int(val)
+        return val
+
+    @staticmethod
+    def fb2int(val):
+        if val < 8:
+            return val
+        return ((val & 7) + 8) << ((val >> 3) - 1)

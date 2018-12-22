@@ -5,6 +5,7 @@ from arith_op import ArithOp
 from arithmetic import Arithmetic
 from cmp_op import CmpOp
 from compare import Compare
+from lua_table import LuaTable
 
 
 class LuaState:
@@ -191,7 +192,10 @@ class LuaState:
     def len(self, idx):
         val = self.stack.get(idx)
         assert(val is not None)
-        self.stack.push(len(val))
+        if isinstance(val, str) or isinstance(val, LuaTable):
+            self.stack.push(len(val))
+        else:
+            raise Exception('length error')
 
     def concat(self, n):
         if n == 0:
@@ -219,6 +223,7 @@ class LuaState:
         elif op == CmpOp.LE:
             return Compare.le(a, b)
 
+    # vm
     def get_pc(self):
         return self.pc
 
@@ -238,3 +243,50 @@ class LuaState:
             self.get_const(rk & 0xff)
         else:           # register
             self.push_value(rk + 1)
+
+    # table
+    def create_table(self, narr, nrec):
+        table = LuaTable(narr, nrec)
+        self.stack.push(table)
+
+    @staticmethod
+    def get_table_val(t, k):
+        if isinstance(t, LuaTable):
+            return t.get(k)
+        raise Exception('not a table')
+
+    def get_table(self, idx):
+        t = self.stack.get(idx)
+        k = self.stack.pop()
+        v = LuaState.get_table_val(t, k)
+        self.stack.push(v)
+        return LuaValue.type_of(v)
+
+    def get_i(self, idx, i):
+        t = self.stack.get(idx)
+        v = LuaState.get_table_val(t, i)
+        self.stack.push(v)
+        return LuaValue.type_of(v)
+
+    def set_table(self, idx):
+        t = self.stack.get(idx)
+        v = self.stack.pop()
+        k = self.stack.pop()
+        LuaState.set_table_kv(t, k, v)
+
+    @staticmethod
+    def set_table_kv(t, k, v):
+        if isinstance(t, LuaTable):
+            t.put(k, v)
+            return
+        raise Exception('not a table')
+
+    def set_field(self, idx, k):
+        t = self.stack.get(idx)
+        v = self.stack.pop()
+        LuaState.set_table_kv(t, k, v)
+
+    def set_i(self, idx, i):
+        t = self.stack.get(idx)
+        v = self.stack.pop()
+        LuaState.set_table_kv(t, i, v)

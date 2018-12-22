@@ -1,6 +1,7 @@
 from arith_op import ArithOp
 from cmp_op import CmpOp
 from lua_type import LuaType
+from lua_value import LuaValue
 
 
 # OpMode
@@ -14,6 +15,10 @@ OpArgN = 0
 OpArgU = 1
 OpArgR = 2
 OpArgK = 3
+
+
+
+LFIELDS_PER_FLUSH = 50
 
 
 class OpCode:
@@ -215,12 +220,12 @@ def concat(inst, vm):
     c += 1
     n = c - b + 1
 
-    vm.check_stack()
+    vm.check_stack(n)
     for i in range(b, c+1):
         vm.push_value(i)
 
     vm.concat(n)
-    vm.repalce(a)
+    vm.replace(a)
 
 
 def jmp(inst, vm):
@@ -324,8 +329,49 @@ def forprep(inst, vm):
     vm.add_pc(sbx)
 
 
+# R(A) := {}
+def newtable(inst, vm):
+    a, b, c = inst.a_b_c()
+    a += 1
+    vm.create_table(LuaValue.fb2int(b), LuaValue.fb2int(c))
+    vm.replace(a)
+
+
+# R(A) := R(B)[RK(C)]
+def gettable(inst, vm):
+    a, b, c = inst.a_b_c()
+    a += 1
+    b += 1
+    vm.get_rk(c)
+    vm.get_table(b)
+    vm.replace(a)
+
+
+# R(A)[R(B)] := RK(C)
+def settable(inst, vm):
+    a, b, c = inst.a_b_c()
+    a += 1
+    vm.get_rk(b)
+    vm.get_rk(c)
+    vm.set_table(a)
+
+
+# R(A)[(C-1)*LFIELDS_PER_FLUSH+i] := R(A+i), 1 <= i <= B
+def setlist(inst, vm):
+    a, b, c = inst.a_b_c()
+    a += 1
+    c = c - 1 if c > 0 else inst.ax(vm.fetch())
+
+    vm.check_stack(1)
+    idx = c * LFIELDS_PER_FLUSH
+    for i in range(1, b+1):
+        idx += 1
+        vm.push_value(a+i)
+        vm.set_i(a, idx)
+
+
 op_codes = [
-    #      T  A  B       C       mode   name
+    #      T  A  B       C       mode   name        action
     OpCode(0, 1, OpArgR, OpArgN, IABC,  "MOVE    ", move),      # R(A) := R(B)
     OpCode(0, 1, OpArgK, OpArgN, IABx,  "LOADK   ", loadk),     # R(A) := Kst(Bx)
     OpCode(0, 1, OpArgN, OpArgN, IABx,  "LOADKX  ", loadkx),    # R(A) := Kst(extra arg)
@@ -333,11 +379,11 @@ op_codes = [
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "LOADNIL ", loadnil),   # R(A), R(A+1), ..., R(A+B) := nil
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "GETUPVAL", None),      # R(A) := UpValue[B]
     OpCode(0, 1, OpArgU, OpArgK, IABC,  "GETTABUP", None),      # R(A) := UpValue[B][RK(C)]
-    OpCode(0, 1, OpArgR, OpArgK, IABC,  "GETTABLE", None),      # R(A) := R(B)[RK(C)]
+    OpCode(0, 1, OpArgR, OpArgK, IABC,  "GETTABLE", gettable),  # R(A) := R(B)[RK(C)]
     OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABUP", None),      # UpValue[A][RK(B)] := RK(C)
     OpCode(0, 0, OpArgU, OpArgN, IABC,  "SETUPVAL", None),      # UpValue[B] := R(A)
-    OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABLE", None),      # R(A)[RK(B)] := RK(C)
-    OpCode(0, 1, OpArgU, OpArgU, IABC,  "NEWTABLE", None),      # R(A) := {} (size = B,C)
+    OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABLE", settable),  # R(A)[RK(B)] := RK(C)
+    OpCode(0, 1, OpArgU, OpArgU, IABC,  "NEWTABLE", newtable),  # R(A) := {} (size = B,C)
     OpCode(0, 1, OpArgR, OpArgK, IABC,  "SELF    ", None),      # R(A+1) := R(B); R(A) := R(B)[RK(C)]
     OpCode(0, 1, OpArgK, OpArgK, IABC,  "ADD     ", add),       # R(A) := RK(B) + RK(C)
     OpCode(0, 1, OpArgK, OpArgK, IABC,  "SUB     ", sub),       # R(A) := RK(B) - RK(C)
@@ -369,7 +415,7 @@ op_codes = [
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "FORPREP ", forprep),   # R(A)-=R(A+2); pc+=sBx
     OpCode(0, 0, OpArgN, OpArgU, IABC,  "TFORCALL", None),      # R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "TFORLOOP", None),      # if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }
-    OpCode(0, 0, OpArgU, OpArgU, IABC,  "SETLIST ", None),      # R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
+    OpCode(0, 0, OpArgU, OpArgU, IABC,  "SETLIST ", setlist),   # R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
     OpCode(0, 1, OpArgU, OpArgN, IABx,  "CLOSURE ", None),      # R(A) := closure(KPROTO[Bx])
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "VARARG  ", None),      # R(A), R(A+1), ..., R(A+B-2) = vararg
     OpCode(0, 0, OpArgU, OpArgU, IAx,   "EXTRAARG", None),      # extra (larger) argument for previous opcode
