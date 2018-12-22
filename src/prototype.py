@@ -89,7 +89,6 @@ class Prototype:
     def print_code(self):
         for i in range(len(self.code)):
             line = self.line_infos[i] if len(self.line_infos) > 0 else '-'
-            # print('\t%d\t[%s]\t0x%08x' % (i+1, line, self.code[i]))
             inst = Instruction(self.code[i])
             print('\t%d\t[%s]\t' % (i+1, line), end='')
             inst.dump()
@@ -138,3 +137,11 @@ class Prototype:
         elif const_type == Prototype.CONST_TYPE_LONG_STR:
             return br.read_lua_str()
 
+    def get_code(self):
+        return self.code
+
+    def get_constants(self):
+        return self.constants
+
+    def get_max_stack_size(self):
+        return self.max_stack_size

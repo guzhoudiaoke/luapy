@@ -8,8 +8,10 @@ from compare import Compare
 
 
 class LuaState:
-    def __init__(self):
+    def __init__(self, proto):
         self.stack = LuaStack()
+        self.proto = proto
+        self.pc = 0
 
     def get_top(self):
         return self.stack.top()
@@ -161,7 +163,7 @@ class LuaState:
     def push_string(self, s):
         self.stack.push(s)
 
-    def dump(self):
+    def print_stack(self):
         top = self.stack.top()
         for i in range(1, top+1):
             t = self.type(i)
@@ -216,3 +218,23 @@ class LuaState:
             return Compare.lt(a, b)
         elif op == CmpOp.LE:
             return Compare.le(a, b)
+
+    def get_pc(self):
+        return self.pc
+
+    def add_pc(self, n):
+        self.pc += n
+
+    def fetch(self):
+        code = self.proto.get_code()[self.pc]
+        self.pc += 1
+        return code
+
+    def get_const(self, idx):
+        self.stack.push(self.proto.get_constants()[idx])
+
+    def get_rk(self, rk):
+        if rk > 0xff:   # constant
+            self.get_const(rk & 0xff)
+        else:           # register
+            self.push_value(rk + 1)

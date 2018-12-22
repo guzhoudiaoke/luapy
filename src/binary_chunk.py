@@ -18,3 +18,6 @@ class BinaryChunk:
 
     def print_main_func(self):
         self.main_func.dump()
+
+    def get_main_func(self):
+        return self.main_func
