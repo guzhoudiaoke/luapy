@@ -3,10 +3,6 @@ class LuaStack:
 
     def __init__(self):
         self.slots = []
-        self.closure = None
-        self.varargs = None
-        self.pc = 0
-        self.caller = None
 
     def top(self):
         return len(self.slots)
@@ -48,18 +44,3 @@ class LuaStack:
             self.slots[begin], self.slots[end] = self.slots[end], self.slots[begin]
             begin += 1
             end -= 1
-
-    def pushn(self, vals, n):
-        nvals = len(vals)
-        if n < 0:
-            n = nvals
-
-        for i in range(n):
-            self.push(vals[i] if i < nvals else None)
-
-    def popn(self, n):
-        vals = []
-        for i in range(n):
-            vals.append(self.pop())
-        vals.reverse()
-        return vals

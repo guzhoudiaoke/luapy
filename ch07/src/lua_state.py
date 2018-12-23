@@ -6,16 +6,13 @@ from arithmetic import Arithmetic
 from cmp_op import CmpOp
 from compare import Compare
 from lua_table import LuaTable
-from binary_chunk import BinaryChunk
-from closure import Closure
-from opcode import Instruction
-from opcode import OpCode
-from thread_state import ThreadStatus
 
 
 class LuaState:
-    def __init__(self):
+    def __init__(self, proto):
         self.stack = LuaStack()
+        self.proto = proto
+        self.pc = 0
 
     def get_top(self):
         return self.stack.top()
@@ -228,18 +225,18 @@ class LuaState:
 
     # vm
     def get_pc(self):
-        return self.stack.pc
+        return self.pc
 
     def add_pc(self, n):
-        self.stack.pc += n
+        self.pc += n
 
     def fetch(self):
-        code = self.stack.closure.proto.get_code()[self.stack.pc]
-        self.stack.pc += 1
+        code = self.proto.get_code()[self.pc]
+        self.pc += 1
         return code
 
     def get_const(self, idx):
-        self.stack.push(self.stack.closure.proto.get_constants()[idx])
+        self.stack.push(self.proto.get_constants()[idx])
 
     def get_rk(self, rk):
         if rk > 0xff:   # constant
@@ -293,80 +290,3 @@ class LuaState:
         t = self.stack.get(idx)
         v = self.stack.pop()
         LuaState.set_table_kv(t, i, v)
-
-    def load(self, chunk):
-        bc = BinaryChunk(chunk)
-        proto = bc.undump()
-        closure = Closure(proto)
-        self.stack.push(closure)
-        return ThreadStatus.OK
-
-    def call(self, nargs, nresults):
-        val = self.stack.get(-(nargs+1))
-        if isinstance(val, Closure):
-            print('call %s<%d,%d>' % (val.proto.get_source(), val.proto.get_line_defined(),
-                                      val.proto.get_last_line_defined()))
-            self.call_lua_closure(nargs, nresults, val)
-        else:
-            raise Exception('not function')
-
-    def call_lua_closure(self, nargs, nresults, c):
-        nregs = c.proto.get_max_stack_size()
-        nparams = c.proto.get_num_params()
-        is_vararg = c.proto.get_is_vararg()
-
-        # create new lua stack
-        new_stack = LuaStack()
-        new_stack.closure = c
-
-        # pass args, pop func
-        func_and_args = self.stack.popn(nargs+1)
-        new_stack.pushn(func_and_args[1:], nparams)
-        if nargs > nparams and is_vararg:
-            new_stack.varargs = func_and_args[nparams+1:]
-
-        # run closure
-        self.push_lua_stack(new_stack)
-        self.set_top(nregs)
-        self.run_lua_closure()
-        self.pop_lua_stack()
-
-        # return results
-        if nresults != 0:
-            results = new_stack.popn(new_stack.top() - nregs)
-            self.stack.check(len(results))
-            self.stack.pushn(results, nresults)
-
-    def run_lua_closure(self):
-        while True:
-            pc = self.get_pc() + 1
-            inst = Instruction(self.fetch())
-            inst.execute(self)
-            print('[%02d] %-12s ' % (pc, inst.op_name()), end='')
-            self.print_stack()
-            if inst.op_code() == OpCode.RETURN:
-                break
-
-    def push_lua_stack(self, s):
-        s.caller = self.stack
-        self.stack = s
-
-    def pop_lua_stack(self):
-        s = self.stack
-        self.stack = s.caller
-        s.caller = None
-
-    def register_count(self):
-        return self.stack.closure.proto.get_max_stack_size()
-
-    def load_vararg(self, n):
-        if n < 0:
-            n = len(self.stack.varargs)
-
-        self.stack.check(n)
-        self.stack.pushn(self.stack.varargs, n)
-
-    def load_proto(self, idx):
-        proto = self.stack.closure.proto.get_protos()[idx]
-        c = Closure(proto)
-        self.stack.push(c)

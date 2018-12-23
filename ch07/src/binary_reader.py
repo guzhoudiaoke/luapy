@@ -2,8 +2,9 @@ import struct
 
 
 class BinaryReader:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, path):
+        with open(path, 'rb') as f:
+            self.data = f.read()
 
     def read_bytes(self, byte_num):
         ret = self.data[: byte_num]

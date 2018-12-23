@@ -4,11 +4,11 @@ from prototype import Prototype
 
 
 class BinaryChunk:
-    def __init__(self, path):
-        self.binary_reader = BinaryReader(path)
-        self.header = BinaryChunkHeader(self.binary_reader)
-        self.size_upvalues = self.binary_reader.read_uint8()
-        self.main_func = Prototype(self.binary_reader, '')
+    def __init__(self, chunk):
+        self.binary_reader = BinaryReader(chunk)
+        self.header = None
+        self.size_upvalues = None
+        self.main_func = None
 
     def print_header(self):
         self.header.dump()
@@ -20,4 +20,11 @@ class BinaryChunk:
         self.main_func.dump()
 
     def get_main_func(self):
+        return self.main_func
+
+    def undump(self):
+        self.header = BinaryChunkHeader(self.binary_reader)
+        self.check_header()
+        self.size_upvalues = self.binary_reader.read_uint8()
+        self.main_func = Prototype(self.binary_reader, '')
         return self.main_func

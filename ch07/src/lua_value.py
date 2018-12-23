@@ -5,7 +5,6 @@ class LuaValue:
     @staticmethod
     def type_of(val):
         from lua_table import LuaTable
-        from closure import Closure
         if val is None:
             return LuaType.NIL
         elif isinstance(val, bool):
@@ -16,8 +15,6 @@ class LuaValue:
             return LuaType.STRING
         elif isinstance(val, LuaTable):
             return LuaType.TABLE
-        elif isinstance(val, Closure):
-            return LuaType.FUNCTION
         raise Exception('Type not support')
 
     @staticmethod

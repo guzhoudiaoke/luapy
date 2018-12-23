@@ -145,21 +145,3 @@ class Prototype:
 
     def get_max_stack_size(self):
         return self.max_stack_size
-
-    def get_source(self):
-        return self.source
-
-    def get_line_defined(self):
-        return self.line_defined
-
-    def get_last_line_defined(self):
-        return self.last_line_defined
-
-    def get_num_params(self):
-        return self.num_params
-
-    def get_is_vararg(self):
-        return self.is_vararg == 1
-
-    def get_protos(self):
-        return self.protos

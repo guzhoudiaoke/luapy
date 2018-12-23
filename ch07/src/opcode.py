@@ -268,7 +268,6 @@ def luanot(inst, vm):
 # if not (R(A) <=> C) then pc++
 def test(inst, vm):
     a, _, c = inst.a_b_c()
-    a += 1
     if vm.to_boolean(a) != (c != 0):
         vm.add_pc(1)
 
@@ -363,113 +362,12 @@ def setlist(inst, vm):
     a += 1
     c = c - 1 if c > 0 else inst.ax(vm.fetch())
 
-    is_zero = b == 0
-    if is_zero:
-        b = vm.to_integer(-1) - a - 1
-        vm.pop(1)
-
     vm.check_stack(1)
     idx = c * LFIELDS_PER_FLUSH
     for i in range(1, b+1):
         idx += 1
         vm.push_value(a+i)
         vm.set_i(a, idx)
-
-    if is_zero:
-        for i in range(vm.register_count() + 1, vm.get_top()+1):
-            idx += 1
-            vm.push_value(i)
-            vm.set_i(a, idx)
-        vm.set_top(vm.register_count())
-
-
-# R(A+1) := R(B); R(A) := R(B)[RK(C)]
-def luaself(inst, vm):
-    a, b, c = inst.a_b_c()
-    a += 1
-    b += 1
-    vm.copy(b, a+1)
-    vm.get_rk(c)
-    vm.get_table(b)
-    vm.replace(a)
-
-
-# R(A) := closure(KPROTO[Bx])
-def closure(inst, vm):
-    a, bx = inst.a_bx()
-    a += 1
-    vm.load_proto(bx)
-    vm.replace(a)
-
-
-def vararg(inst, vm):
-    a, b, _ = inst.a_b_c()
-    a += 1
-    if b != 1:
-        vm.load_vararg(b-1)
-        pop_results(a, b, vm)
-
-
-def tailcall(inst, vm):
-    a, b, _ = inst.a_b_c()
-    a += 1
-    c = 0
-    nargs = push_func_and_args(a, b, vm)
-    vm.call(nargs, c-1)
-    pop_results(a, c, vm)
-
-
-def call(inst, vm):
-    a, b, c = inst.a_b_c()
-    a += 1
-    nargs = push_func_and_args(a, b, vm)
-    vm.call(nargs, c-1)
-    pop_results(a, c, vm)
-
-
-def luaret(inst, vm):
-    a, b, _ = inst.a_b_c()
-    a += 1
-    if b == 1:
-        pass
-    elif b > 1:
-        vm.check_stack(b-1)
-        for i in range(a, a+b-1):
-            vm.push_value(i)
-    else:
-        fix_stack(a, vm)
-
-
-def push_func_and_args(a, b, vm):
-    if b >= 1:
-        vm.check_stack(b)
-        for i in range(a, a+b):
-            vm.push_value(i)
-        return b-1
-    else:
-        fix_stack(a, vm)
-        return vm.get_top() - vm.register_count() - 1
-
-
-def fix_stack(a, vm):
-    x = vm.to_integer(-1)
-    vm.pop(1)
-
-    vm.check_stack(x-a)
-    for i in range(a, x):
-        vm.push_value(i)
-    vm.rotate(vm.register_count()+1, x-a)
-
-
-def pop_results(a, c, vm):
-    if c == 1:
-        pass
-    elif c > 1:
-        for i in range(a+c-2, a-1, -1):
-            vm.replace(i)
-    else:
-        vm.check_stack(1)
-        vm.push_integer(a)
 
 
 op_codes = [
@@ -486,7 +384,7 @@ op_codes = [
     OpCode(0, 0, OpArgU, OpArgN, IABC,  "SETUPVAL", None),      # UpValue[B] := R(A)
     OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABLE", settable),  # R(A)[RK(B)] := RK(C)
     OpCode(0, 1, OpArgU, OpArgU, IABC,  "NEWTABLE", newtable),  # R(A) := {} (size = B,C)
-    OpCode(0, 1, OpArgR, OpArgK, IABC,  "SELF    ", luaself),   # R(A+1) := R(B); R(A) := R(B)[RK(C)]
+    OpCode(0, 1, OpArgR, OpArgK, IABC,  "SELF    ", None),      # R(A+1) := R(B); R(A) := R(B)[RK(C)]
     OpCode(0, 1, OpArgK, OpArgK, IABC,  "ADD     ", add),       # R(A) := RK(B) + RK(C)
     OpCode(0, 1, OpArgK, OpArgK, IABC,  "SUB     ", sub),       # R(A) := RK(B) - RK(C)
     OpCode(0, 1, OpArgK, OpArgK, IABC,  "MUL     ", mul),       # R(A) := RK(B) * RK(C)
@@ -510,16 +408,16 @@ op_codes = [
     OpCode(1, 0, OpArgK, OpArgK, IABC,  "LE      ", le),        # if ((RK(B) <= RK(C)) ~= A) then pc++
     OpCode(1, 0, OpArgN, OpArgU, IABC,  "TEST    ", test),      # if not (R(A) <=> C) then pc++
     OpCode(1, 1, OpArgR, OpArgU, IABC,  "TESTSET ", testset),   # if (R(B) <=> C) then R(A) := R(B) else pc++
-    OpCode(0, 1, OpArgU, OpArgU, IABC,  "CALL    ", call),      # R(A), ...,R(A+C-2) := R(A)(R(A+1), ...,R(A+B-1))
-    OpCode(0, 1, OpArgU, OpArgU, IABC,  "TAILCALL", tailcall),  # return R(A)(R(A+1), ... ,R(A+B-1))
-    OpCode(0, 0, OpArgU, OpArgN, IABC,  "RETURN  ", luaret),    # return R(A), ... ,R(A+B-2)
+    OpCode(0, 1, OpArgU, OpArgU, IABC,  "CALL    ", None),      # R(A), ...,R(A+C-2) := R(A)(R(A+1), ...,R(A+B-1))
+    OpCode(0, 1, OpArgU, OpArgU, IABC,  "TAILCALL", None),      # return R(A)(R(A+1), ... ,R(A+B-1))
+    OpCode(0, 0, OpArgU, OpArgN, IABC,  "RETURN  ", None),      # return R(A), ... ,R(A+B-2)
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "FORLOOP ", forloop),   # R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "FORPREP ", forprep),   # R(A)-=R(A+2); pc+=sBx
     OpCode(0, 0, OpArgN, OpArgU, IABC,  "TFORCALL", None),      # R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "TFORLOOP", None),      # if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }
     OpCode(0, 0, OpArgU, OpArgU, IABC,  "SETLIST ", setlist),   # R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
-    OpCode(0, 1, OpArgU, OpArgN, IABx,  "CLOSURE ", closure),   # R(A) := closure(KPROTO[Bx])
-    OpCode(0, 1, OpArgU, OpArgN, IABC,  "VARARG  ", vararg),    # R(A), R(A+1), ..., R(A+B-2) = vararg
+    OpCode(0, 1, OpArgU, OpArgN, IABx,  "CLOSURE ", None),      # R(A) := closure(KPROTO[Bx])
+    OpCode(0, 1, OpArgU, OpArgN, IABC,  "VARARG  ", None),      # R(A), R(A+1), ..., R(A+B-2) = vararg
     OpCode(0, 0, OpArgU, OpArgU, IAx,   "EXTRAARG", None),      # extra (larger) argument for previous opcode
 ]
 
