@@ -21,7 +21,7 @@ class LuaTable:
             if 1 <= key <= len(self.arr):
                 return self.arr[key-1]
 
-        return self.map[key] if (self.map and key in self.map) else None
+        return self.map[key] if key in self.map else None
 
     def map_to_arr(self):
         if self.map:

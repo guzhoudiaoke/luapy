@@ -17,6 +17,7 @@ OpArgR = 2
 OpArgK = 3
 
 
+
 LFIELDS_PER_FLUSH = 50
 
 
@@ -471,17 +472,6 @@ def pop_results(a, c, vm):
         vm.push_integer(a)
 
 
-def gettabup(inst, vm):
-    a, _, c = inst.a_b_c()
-    a += 1
-
-    vm.push_global_table()
-    vm.get_rk(c)
-    vm.get_table(-2)
-    vm.replace(a)
-    vm.pop(1)
-
-
 op_codes = [
     #      T  A  B       C       mode   name        action
     OpCode(0, 1, OpArgR, OpArgN, IABC,  "MOVE    ", move),      # R(A) := R(B)
@@ -490,7 +480,7 @@ op_codes = [
     OpCode(0, 1, OpArgU, OpArgU, IABC,  "LOADBOOL", loadbool),  # R(A) := (bool)B; if (C) pc++
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "LOADNIL ", loadnil),   # R(A), R(A+1), ..., R(A+B) := nil
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "GETUPVAL", None),      # R(A) := UpValue[B]
-    OpCode(0, 1, OpArgU, OpArgK, IABC,  "GETTABUP", gettabup),  # R(A) := UpValue[B][RK(C)]
+    OpCode(0, 1, OpArgU, OpArgK, IABC,  "GETTABUP", None),      # R(A) := UpValue[B][RK(C)]
     OpCode(0, 1, OpArgR, OpArgK, IABC,  "GETTABLE", gettable),  # R(A) := R(B)[RK(C)]
     OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABUP", None),      # UpValue[A][RK(B)] := RK(C)
     OpCode(0, 0, OpArgU, OpArgN, IABC,  "SETUPVAL", None),      # UpValue[B] := R(A)

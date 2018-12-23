@@ -1,16 +1,12 @@
-from consts import Consts
-
-
 class LuaStack:
     MAX_STACK_SIZE = 1000
 
-    def __init__(self, lua_state):
+    def __init__(self):
         self.slots = []
         self.closure = None
         self.varargs = None
         self.pc = 0
         self.caller = None
-        self.lua_state = lua_state
 
     def top(self):
         return len(self.slots)
@@ -29,33 +25,20 @@ class LuaStack:
         return ret
 
     def abs_index(self, idx):
-        if idx <= Consts.LUA_REGISTRYINDEX:
-            return idx
-
         if idx >= 0:
             return idx
         return idx + len(self.slots) + 1
 
     def is_valid(self, idx):
-        if idx == Consts.LUA_REGISTRYINDEX:
-            return True
-
         idx = self.abs_index(idx)
         return (idx > 0) and (idx <= len(self.slots))
 
     def get(self, idx):
-        if idx == Consts.LUA_REGISTRYINDEX:
-            return self.lua_state.registry
-
         if not self.is_valid(idx):
             return None
         return self.slots[self.abs_index(idx)-1]
 
     def set(self, idx, val):
-        if idx == Consts.LUA_REGISTRYINDEX:
-            self.lua_state.registry = val
-            return
-
         if not self.is_valid(idx):
             raise Exception('Invalid Index')
         self.slots[self.abs_index(idx)-1] = val

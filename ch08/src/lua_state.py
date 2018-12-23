@@ -11,15 +11,11 @@ from closure import Closure
 from opcode import Instruction
 from opcode import OpCode
 from thread_state import ThreadStatus
-from consts import Consts
 
 
 class LuaState:
     def __init__(self):
-        self.stack = LuaStack(self)
-        self.registry = LuaTable(0, 0)
-        self.registry.put(Consts.LUA_RIDX_GLOBALS, LuaTable(0, 0))
-        self.push_lua_stack(LuaStack(Consts.LUA_MIN_STACK))
+        self.stack = LuaStack()
 
     def get_top(self):
         return self.stack.top()
@@ -301,17 +297,16 @@ class LuaState:
     def load(self, chunk):
         bc = BinaryChunk(chunk)
         proto = bc.undump()
-        closure = Closure(proto, None)
+        closure = Closure(proto)
         self.stack.push(closure)
         return ThreadStatus.OK
 
     def call(self, nargs, nresults):
         val = self.stack.get(-(nargs+1))
         if isinstance(val, Closure):
-            if val.proto:
-                self.call_lua_closure(nargs, nresults, val)
-            else:
-                self.call_py_closure(nargs, nresults, val)
+            print('call %s<%d,%d>' % (val.proto.get_source(), val.proto.get_line_defined(),
+                                      val.proto.get_last_line_defined()))
+            self.call_lua_closure(nargs, nresults, val)
         else:
             raise Exception('not function')
 
@@ -321,7 +316,7 @@ class LuaState:
         is_vararg = c.proto.get_is_vararg()
 
         # create new lua stack
-        new_stack = LuaStack(self)
+        new_stack = LuaStack()
         new_stack.closure = c
 
         # pass args, pop func
@@ -375,51 +370,3 @@ class LuaState:
         proto = self.stack.closure.proto.get_protos()[idx]
         c = Closure(proto)
         self.stack.push(c)
-
-    def push_py_function(self, func):
-        py_closure = Closure(None, func)
-        self.stack.push(py_closure)
-
-    def is_py_function(self, idx):
-        val = self.stack.get(idx)
-        return val and isinstance(val, Closure) and val.py_func is not None
-
-    def to_py_function(self, idx):
-        val = self.stack.get(idx)
-        if val and isinstance(val, Closure) and val.py_func is not None:
-            return val.py_func
-        return None
-
-    def call_py_closure(self, nargs, nresults, c):
-        new_stack = LuaStack(self)
-        new_stack.closure = c
-
-        args = self.stack.popn(nargs)
-        new_stack.pushn(args, nargs)
-        self.stack.pop()
-
-        self.push_lua_stack(new_stack)
-        r = c.py_func(self)
-        self.pop_lua_stack()
-
-        if nresults != 0:
-            results = new_stack.popn(r)
-            self.stack.check(len(results))
-            self.stack.pushn(results, nresults)
-
-    def push_global_table(self):
-        g = self.registry.get(Consts.LUA_RIDX_GLOBALS)
-        self.stack.push(g)
-
-    def get_global(self, name):
-        t = self.registry.get(Consts.LUA_RIDX_GLOBALS)
-        return LuaState.get_table_val(t, name)
-
-    def set_global(self, name):
-        t = self.registry.get(Consts.LUA_RIDX_GLOBALS)
-        v = self.stack.pop()
-        LuaState.set_table_kv(t, name, v)
-
-    def register(self, name, func):
-        self.push_py_function(func)
-        self.set_global(name)
