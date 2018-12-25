@@ -11,7 +11,6 @@ class LuaStack:
         self.pc = 0
         self.caller = None
         self.lua_state = lua_state
-        self.open_upvalues = {}
 
     def top(self):
         return len(self.slots)
@@ -33,14 +32,11 @@ class LuaStack:
         if idx <= Consts.LUA_REGISTRYINDEX:
             return idx
 
-        return idx if idx >= 0 else idx + len(self.slots) + 1
+        if idx >= 0:
+            return idx
+        return idx + len(self.slots) + 1
 
     def is_valid(self, idx):
-        # upvalues
-        if idx < Consts.LUA_REGISTRYINDEX:
-            uvidx = Consts.LUA_REGISTRYINDEX - idx - 1
-            return self.closure is not None and uvidx < len(self.closure.upvals)
-
         if idx == Consts.LUA_REGISTRYINDEX:
             return True
 
@@ -48,13 +44,6 @@ class LuaStack:
         return (idx > 0) and (idx <= len(self.slots))
 
     def get(self, idx):
-        # upvalues
-        if idx < Consts.LUA_REGISTRYINDEX:
-            uvidx = Consts.LUA_REGISTRYINDEX - idx - 1
-            if self.closure and len(self.closure.upvals) > uvidx:
-                return self.closure.upvals[uvidx]
-            return None
-
         if idx == Consts.LUA_REGISTRYINDEX:
             return self.lua_state.registry
 
@@ -63,13 +52,6 @@ class LuaStack:
         return self.slots[self.abs_index(idx)-1]
 
     def set(self, idx, val):
-        # upvalues
-        if idx < Consts.LUA_REGISTRYINDEX:
-            uvidx = Consts.LUA_REGISTRYINDEX - idx - 1
-            if self.closure and len(self.closure.upvals) > uvidx:
-                self.closure.upvals[uvidx] = val
-            return
-
         if idx == Consts.LUA_REGISTRYINDEX:
             self.lua_state.registry = val
             return

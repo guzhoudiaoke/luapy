@@ -48,7 +48,7 @@ class Prototype:
     def read_upvalues(self, br):
         self.upvalues = []
         for i in range(br.read_uint32()):
-            self.upvalues.append(Upvalue(br.read_uint8(), br.read_uint8()))
+            self.upvalues.append(Upvalue(br))
 
     def read_protos(self, br, parent_source):
         self.protos = []
@@ -63,10 +63,7 @@ class Prototype:
     def read_local_vars(self, br):
         self.local_vars = []
         for i in range(br.read_uint32()):
-            var_name = br.read_lua_str()
-            start_pc = br.read_uint32()
-            end_pc = br.read_uint32()
-            self.local_vars.append(LocalVar(var_name, start_pc, end_pc))
+            self.local_vars.append(LocalVar(br))
 
     def read_upvalue_names(self, br):
         self.upvalue_names = []
@@ -166,6 +163,3 @@ class Prototype:
 
     def get_protos(self):
         return self.protos
-
-    def get_upvalues(self):
-        return self.upvalues

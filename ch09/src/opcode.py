@@ -2,7 +2,6 @@ from arith_op import ArithOp
 from cmp_op import CmpOp
 from lua_type import LuaType
 from lua_value import LuaValue
-from consts import Consts
 
 
 # OpMode
@@ -231,8 +230,7 @@ def concat(inst, vm):
 def jmp(inst, vm):
     a, sbx = inst.a_sbx()
     vm.add_pc(sbx)
-    if a != 0:
-        vm.close_upvalues(a)
+    assert(a == 0)
 
 
 def compare(inst, vm, op):
@@ -473,41 +471,15 @@ def pop_results(a, c, vm):
         vm.push_integer(a)
 
 
-def lua_upvalue_index(idx):
-    return Consts.LUA_REGISTRYINDEX - idx
-
-
-def getupval(inst, vm):
-    a, b, _ = inst.a_b_c()
-    a += 1
-    b += 1
-    vm.copy(lua_upvalue_index(b), a)
-
-
-def setupval(inst, vm):
-    a, b, _ = inst.a_b_c()
-    a += 1
-    b += 1
-    vm.copy(a, lua_upvalue_index(b))
-
-
 def gettabup(inst, vm):
-    a, b, c = inst.a_b_c()
+    a, _, c = inst.a_b_c()
     a += 1
-    b += 1
 
+    vm.push_global_table()
     vm.get_rk(c)
-    vm.get_table(lua_upvalue_index(b))
+    vm.get_table(-2)
     vm.replace(a)
-
-
-def settabup(inst, vm):
-    a, b, c = inst.a_b_c()
-    a += 1
-
-    vm.get_rk(b)
-    vm.get_rk(c)
-    vm.set_table(lua_upvalue_index(a))
+    vm.pop(1)
 
 
 op_codes = [
@@ -517,11 +489,11 @@ op_codes = [
     OpCode(0, 1, OpArgN, OpArgN, IABx,  "LOADKX  ", loadkx),    # R(A) := Kst(extra arg)
     OpCode(0, 1, OpArgU, OpArgU, IABC,  "LOADBOOL", loadbool),  # R(A) := (bool)B; if (C) pc++
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "LOADNIL ", loadnil),   # R(A), R(A+1), ..., R(A+B) := nil
-    OpCode(0, 1, OpArgU, OpArgN, IABC,  "GETUPVAL", getupval),  # R(A) := UpValue[B]
+    OpCode(0, 1, OpArgU, OpArgN, IABC,  "GETUPVAL", None),      # R(A) := UpValue[B]
     OpCode(0, 1, OpArgU, OpArgK, IABC,  "GETTABUP", gettabup),  # R(A) := UpValue[B][RK(C)]
     OpCode(0, 1, OpArgR, OpArgK, IABC,  "GETTABLE", gettable),  # R(A) := R(B)[RK(C)]
-    OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABUP", settabup),  # UpValue[A][RK(B)] := RK(C)
-    OpCode(0, 0, OpArgU, OpArgN, IABC,  "SETUPVAL", setupval),  # UpValue[B] := R(A)
+    OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABUP", None),      # UpValue[A][RK(B)] := RK(C)
+    OpCode(0, 0, OpArgU, OpArgN, IABC,  "SETUPVAL", None),      # UpValue[B] := R(A)
     OpCode(0, 0, OpArgK, OpArgK, IABC,  "SETTABLE", settable),  # R(A)[RK(B)] := RK(C)
     OpCode(0, 1, OpArgU, OpArgU, IABC,  "NEWTABLE", newtable),  # R(A) := {} (size = B,C)
     OpCode(0, 1, OpArgR, OpArgK, IABC,  "SELF    ", luaself),   # R(A+1) := R(B); R(A) := R(B)[RK(C)]

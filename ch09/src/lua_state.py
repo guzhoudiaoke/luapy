@@ -301,14 +301,8 @@ class LuaState:
     def load(self, chunk):
         bc = BinaryChunk(chunk)
         proto = bc.undump()
-        closure = Closure(proto, None, 0)
+        closure = Closure(proto, None)
         self.stack.push(closure)
-
-        if len(proto.upvalues) > 0:
-            env = self.registry.get(Consts.LUA_RIDX_GLOBALS)
-            closure.upvals[0] = env
-            print('env: ', end='')
-            env.dump()
         return ThreadStatus.OK
 
     def call(self, nargs, nresults):
@@ -379,21 +373,11 @@ class LuaState:
 
     def load_proto(self, idx):
         proto = self.stack.closure.proto.get_protos()[idx]
-        c = Closure(proto, None, 0)
+        c = Closure(proto)
         self.stack.push(c)
 
-        for i in range(len(proto.upvalues)):
-            upvalue = proto.get_upvalues()[i]
-            idx = upvalue.get_idx()
-            if upvalue.get_in_stack():
-                if idx not in self.stack.open_upvalues:
-                    self.stack.open_upvalues[idx] = self.stack.slots[idx]
-                c.upvals[i] = self.stack.open_upvalues[idx]
-            else:
-                c.upvals[i] = self.stack.closure.upvals[idx]
-
     def push_py_function(self, func):
-        py_closure = Closure(None, func, 0)
+        py_closure = Closure(None, func)
         self.stack.push(py_closure)
 
     def is_py_function(self, idx):
@@ -439,16 +423,3 @@ class LuaState:
     def register(self, name, func):
         self.push_py_function(func)
         self.set_global(name)
-
-    def push_py_closure(self, py_func, n):
-        closure = Closure(None, py_func, n)
-        for i in range(n, 0, -1):
-            v = self.stack.pop()
-            closure.upvals[i-1] = v
-        self.stack.push(closure)
-
-    def close_upvalues(self, a):
-        for k, v in self.stack.open_upvalues:
-            if k >= a-1:
-                v.migrate()
-                self.stack.open_upvalues.pop(k)

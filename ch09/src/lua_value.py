@@ -18,7 +18,7 @@ class LuaValue:
             return LuaType.TABLE
         elif isinstance(val, Closure):
             return LuaType.FUNCTION
-        return LuaType.NONE
+        raise Exception('Type not support')
 
     @staticmethod
     def to_boolean(val):

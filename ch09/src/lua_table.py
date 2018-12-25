@@ -57,13 +57,5 @@ class LuaTable:
         if val is not None:
             if not self.map:
                 self.map = {key: val}
-            else:
-                self.map[key] = val
         else:
             self.map.pop(key)
-
-    def dump(self):
-        if self.arr:
-            print(self.arr, end=' ')
-        if self.map:
-            print(self.map)
