@@ -1,6 +1,6 @@
 from upvalue import Upvalue
 from local_var import LocalVar
-from lua_opcode import Instruction
+from opcode import Instruction
 
 
 class Prototype:

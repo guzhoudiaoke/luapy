@@ -60,22 +60,22 @@ def bnot(a, b):
 
 
 class Arithmetic:
-    operator = namedtuple('operator', ['metamethod', 'integer_func', 'float_func'])
+    operator = namedtuple('operator', ['integer_func', 'float_func'])
     operators = {
-        ArithOp.ADD:  operator('__add',  add,  add),
-        ArithOp.SUB:  operator('__sub',  sub,  sub),
-        ArithOp.MUL:  operator('__mul',  mul,  mul),
-        ArithOp.MOD:  operator('__mod',  mod,  mod),
-        ArithOp.POW:  operator('__pow',  None, pow),
-        ArithOp.DIV:  operator('__div',  None, div),
-        ArithOp.IDIV: operator('__fdiv', fdiv, fdiv),
-        ArithOp.BAND: operator('__band', band, None),
-        ArithOp.BOR:  operator('__bor',  bor,  None),
-        ArithOp.BXOR: operator('__bxor', bxor, None),
-        ArithOp.SHL:  operator('__shl',  shl,  None),
-        ArithOp.SHR:  operator('__shr',  shr,  None),
-        ArithOp.UNM:  operator('__unm',  unm,  unm),
-        ArithOp.BNOT: operator('__bnot', bnot, None)
+        ArithOp.ADD:  operator(add,  add),
+        ArithOp.SUB:  operator(sub,  sub),
+        ArithOp.MUL:  operator(mul,  mul),
+        ArithOp.MOD:  operator(mod,  mod),
+        ArithOp.POW:  operator(None, pow),
+        ArithOp.DIV:  operator(None, div),
+        ArithOp.IDIV: operator(fdiv, fdiv),
+        ArithOp.BAND: operator(band, None),
+        ArithOp.BOR:  operator(bor,  None),
+        ArithOp.BXOR: operator(bxor, None),
+        ArithOp.SHL:  operator(shl,  None),
+        ArithOp.SHR:  operator(shr,  None),
+        ArithOp.UNM:  operator(unm,  unm),
+        ArithOp.BNOT: operator(bnot, None)
     }
 
     @staticmethod

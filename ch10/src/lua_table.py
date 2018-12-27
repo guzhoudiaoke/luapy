@@ -5,7 +5,6 @@ class LuaTable:
     def __init__(self, narr, nrec):
         self.arr = None
         self.map = None
-        self.metatable = None
 
         if narr > 0:
             self.arr = []
@@ -68,9 +67,3 @@ class LuaTable:
             print(self.arr, end=' ')
         if self.map:
             print(self.map)
-
-    def has_metafield(self, name):
-        return self.metatable is not None and self.metatable.get(name) is not None
-
-    def __str__(self):
-        return str(self.arr) if self.arr else str(self.map)

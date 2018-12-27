@@ -8,8 +8,8 @@ from compare import Compare
 from lua_table import LuaTable
 from binary_chunk import BinaryChunk
 from closure import Closure
-from lua_opcode import Instruction
-from lua_opcode import OpCode
+from opcode import Instruction
+from opcode import OpCode
 from thread_state import ThreadStatus
 from consts import Consts
 
@@ -20,7 +20,6 @@ class LuaState:
         self.registry = LuaTable(0, 0)
         self.registry.put(Consts.LUA_RIDX_GLOBALS, LuaTable(0, 0))
         self.push_lua_stack(LuaStack(Consts.LUA_MIN_STACK))
-        self.time = 0
 
     def get_top(self):
         return self.stack.top()
@@ -194,52 +193,28 @@ class LuaState:
         b = self.stack.pop()
         a = self.stack.pop() if (op != ArithOp.UNM and op != ArithOp.BNOT) else b
         result = Arithmetic.arith(a, op, b)
-        if result is None:
-            name = Arithmetic.operators[op].metamethod
-            metamethod = self.get_metamethod(a, b, name)
-            result = self.call_metamethod(a, metamethod, b) if metamethod else None
-
         assert(result is not None)
         self.stack.push(result)
 
     def len(self, idx):
         val = self.stack.get(idx)
         assert(val is not None)
-        if isinstance(val, str):
+        if isinstance(val, str) or isinstance(val, LuaTable):
             self.stack.push(len(val))
-            return
-
-        metamethod = self.get_metamethod(val, val, '__len')
-        if metamethod is not None:
-            self.stack.push(self.call_metamethod(val, metamethod, val))
-            return
-
-        if isinstance(val, LuaTable):
-            self.stack.push(len(val))
-            return
-        raise Exception('length error')
+        else:
+            raise Exception('length error')
 
     def concat(self, n):
         if n == 0:
             self.stack.push('')
         elif n >= 2:
             for i in range(1, n):
-                if self.is_string(-1) and self.is_string(-2):
-                    s2 = self.to_string(-1)
-                    s1 = self.to_string(-2)
-                    self.stack.pop()
-                    self.stack.pop()
-                    self.stack.push(s1+s2)
-                    continue
-
-                b = self.stack.pop()
-                a = self.stack.pop()
-                mm = self.get_metamethod(a, b, '__concat')
-                if mm:
-                    self.stack.push(self.call_metamethod(a, mm, b))
-                    continue
-
-                raise Exception('concatenation error!')
+                assert(self.is_string(-1) and self.is_string(-2))
+                s2 = self.to_string(-1)
+                s1 = self.to_string(-2)
+                self.stack.pop()
+                self.stack.pop()
+                self.stack.push(s1+s2)
 
     def compare(self, idx1, op, idx2):
         if not self.stack.is_valid(idx1) or not self.stack.is_valid(idx2):
@@ -249,11 +224,11 @@ class LuaState:
         b = self.stack.get(idx2)
 
         if op == CmpOp.EQ:
-            return Compare.eq(a, b, self)
+            return Compare.eq(a, b)
         elif op == CmpOp.LT:
-            return Compare.lt(a, b, self)
+            return Compare.lt(a, b)
         elif op == CmpOp.LE:
-            return Compare.le(a, b, self)
+            return Compare.le(a, b)
 
     # vm
     def get_pc(self):
@@ -281,31 +256,22 @@ class LuaState:
         table = LuaTable(narr, nrec)
         self.stack.push(table)
 
-    def get_table_val(self, t, k, raw):
+    @staticmethod
+    def get_table_val(t, k):
         if isinstance(t, LuaTable):
-            v = t.get(k)
-            if raw or (v is not None) or (not t.has_metafield('__index')):
-                return v
-        if not raw:
-            mf = self.get_metafield(t, '__index')
-            if mf:
-                if isinstance(mf, LuaTable):
-                    return self.get_table_val(mf, k, False)
-                elif isinstance(mf, Closure):
-                    v = self.call_metamethod(t, mf, k)
-                    return v
+            return t.get(k)
         raise Exception('not a table')
 
     def get_table(self, idx):
         t = self.stack.get(idx)
         k = self.stack.pop()
-        v = self.get_table_val(t, k, False)
+        v = LuaState.get_table_val(t, k)
         self.stack.push(v)
         return LuaValue.type_of(v)
 
     def get_i(self, idx, i):
         t = self.stack.get(idx)
-        v = self.get_table_val(t, i, False)
+        v = LuaState.get_table_val(t, i)
         self.stack.push(v)
         return LuaValue.type_of(v)
 
@@ -313,37 +279,24 @@ class LuaState:
         t = self.stack.get(idx)
         v = self.stack.pop()
         k = self.stack.pop()
-        self.set_table_kv(t, k, v, False)
+        LuaState.set_table_kv(t, k, v)
 
-    def set_table_kv(self, t, k, v, raw):
+    @staticmethod
+    def set_table_kv(t, k, v):
         if isinstance(t, LuaTable):
-            if raw or t.get(k) or not t.has_metafield('__newindex'):
-                t.put(k, v)
-                return
-        if not raw:
-            mf = self.get_metafield(t, '__newindex')
-            if mf:
-                if isinstance(mf, LuaTable):
-                    self.set_table_kv(mf, k, v, False)
-                    return
-                if isinstance(mf, Closure):
-                    self.stack.push(mf)
-                    self.stack.push(t)
-                    self.stack.push(k)
-                    self.stack.push(v)
-                    self.call(3, 0)
-                    return
+            t.put(k, v)
+            return
         raise Exception('not a table')
 
     def set_field(self, idx, k):
         t = self.stack.get(idx)
         v = self.stack.pop()
-        self.set_table_kv(t, k, v, False)
+        LuaState.set_table_kv(t, k, v)
 
     def set_i(self, idx, i):
         t = self.stack.get(idx)
         v = self.stack.pop()
-        self.set_table_kv(t, i, v, False)
+        LuaState.set_table_kv(t, i, v)
 
     def load(self, chunk):
         bc = BinaryChunk(chunk)
@@ -360,22 +313,13 @@ class LuaState:
 
     def call(self, nargs, nresults):
         val = self.stack.get(-(nargs+1))
-        f = val if isinstance(val, Closure) else None
-        if f is None:
-            metamethod = self.get_metafield(val, '__call')
-            if metamethod and isinstance(metamethod, Closure):
-                self.stack.push(val)
-                self.insert(-(nargs+2))
-                nargs += 1
-                f = metamethod
-
-        if f:
-            if f.proto:
-                self.call_lua_closure(nargs, nresults, f)
+        if isinstance(val, Closure):
+            if val.proto:
+                self.call_lua_closure(nargs, nresults, val)
             else:
-                self.call_py_closure(nargs, nresults, f)
+                self.call_py_closure(nargs, nresults, val)
         else:
-            raise Exception(f, 'is not a function')
+            raise Exception('not function')
 
     def call_lua_closure(self, nargs, nresults, c):
         nregs = c.proto.get_max_stack_size()
@@ -406,12 +350,11 @@ class LuaState:
 
     def run_lua_closure(self):
         while True:
-            # pc = self.get_pc() + 1
+            pc = self.get_pc() + 1
             inst = Instruction(self.fetch())
             inst.execute(self)
-            # print('(%3d) [%02d] %-12s ' % (self.time, pc, inst.op_name()), end='')
-            # self.print_stack()
-            self.time += 1
+            print('[%02d] %-12s ' % (pc, inst.op_name()), end='')
+            self.print_stack()
             if inst.op_code() == OpCode.RETURN:
                 break
 
@@ -486,12 +429,12 @@ class LuaState:
 
     def get_global(self, name):
         t = self.registry.get(Consts.LUA_RIDX_GLOBALS)
-        return self.get_table_val(t, name, False)
+        return LuaState.get_table_val(t, name)
 
     def set_global(self, name):
         t = self.registry.get(Consts.LUA_RIDX_GLOBALS)
         v = self.stack.pop()
-        self.set_table_kv(t, name, v, False)
+        LuaState.set_table_kv(t, name, v)
 
     def register(self, name, func):
         self.push_py_function(func)
@@ -509,56 +452,3 @@ class LuaState:
             if k >= a-1:
                 v.migrate()
                 self.stack.open_upvalues.pop(k)
-
-    def set_metatable(self, idx):
-        v = self.stack.get(idx)
-        mt = self.stack.pop()
-        if mt is None:
-            self.set_metatable_kv(v, None)
-        elif isinstance(mt, LuaTable):
-            self.set_metatable_kv(v, mt)
-        else:
-            raise Exception('table expected!')
-
-    def set_metatable_kv(self, val, mt):
-        if isinstance(val, LuaTable):
-            val.metatable = mt
-        else:
-            key = '_MT' + LuaValue.type_of(val)
-            self.registry.put(key, mt)
-
-    def get_metatable(self, idx):
-        v = self.stack.get(idx)
-        mt = self.get_metatable_k(v)
-        if mt:
-            self.stack.push(mt)
-            return True
-        else:
-            return False
-
-    def get_metatable_k(self, val):
-        if isinstance(val, LuaTable):
-            return val.metatable
-        else:
-            key = '_MT' + str(LuaValue.type_of(val))
-            return self.registry.get(key)
-
-    def call_metamethod(self, a, mm, b):
-        self.stack.push(mm)
-        self.stack.push(a)
-        self.stack.push(b)
-        self.call(2, 1)
-        return self.stack.pop()
-
-    def get_metafield(self, val, name):
-        mt = self.get_metatable_k(val)
-        if mt is not None:
-            return mt.get(name)
-        return None
-
-    def get_metamethod(self, a, b, name):
-        metamethod = self.get_metafield(a, name)
-        if not metamethod:
-            metamethod = self.get_metafield(b, name)
-        return metamethod
-
