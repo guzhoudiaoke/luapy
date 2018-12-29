@@ -199,12 +199,12 @@ class LuaState:
             metamethod = self.get_metamethod(a, b, name)
             result = self.call_metamethod(a, metamethod, b) if metamethod else None
 
-        if result is None:
-            raise Exception('arith error')
+        assert(result is not None)
         self.stack.push(result)
 
     def len(self, idx):
         val = self.stack.get(idx)
+        assert(val is not None)
         if isinstance(val, str):
             self.stack.push(len(val))
             return
@@ -573,21 +573,3 @@ class LuaState:
                 return True
             return False
         raise Exception("table expected!")
-
-    def error(self):
-        err = self.stack.pop()
-        raise Exception(err)
-
-    def pcall(self, nargs, nresults, msgh):
-        caller = self.stack
-        try:
-            self.call(nargs, nresults)
-            return ThreadStatus.OK
-        except BaseException as e:
-            if msgh != 0:
-                raise Exception(str(e))
-
-            while self.stack != caller:
-                self.pop_lua_stack()
-            self.stack.push(str(e))
-            return ThreadStatus.ERRRUN
