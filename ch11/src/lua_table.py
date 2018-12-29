@@ -1,4 +1,3 @@
-import collections
 from lua_value import LuaValue
 
 
@@ -7,9 +6,6 @@ class LuaTable:
         self.arr = None
         self.map = None
         self.metatable = None
-        self.keys = None
-        self.modified = False
-        self.lastkey = None
 
         if narr > 0:
             self.arr = []
@@ -78,30 +74,3 @@ class LuaTable:
 
     def __str__(self):
         return str(self.arr) if self.arr else str(self.map)
-
-    def init_keys(self):
-        self.keys = collections.OrderedDict()
-        key = None
-        if self.arr is not None:
-            for i in range(len(self.arr)):
-                if self.arr[i] is not None:
-                    self.keys[key] = i+1
-                    key = i+1
-
-        if self.map is not None:
-            for k, v in self.map.items():
-                if v is not None:
-                    self.keys[key] = k
-                    key = k
-
-        self.lastkey = key
-
-    def next_key(self, key):
-        if self.keys is None or (key is None and self.modified):
-            self.init_keys()
-            self.modified = False
-
-        nextkey = self.keys[key] if key in self.keys else None
-        if nextkey is None and key is not None and key != self.lastkey:
-            raise Exception('Invalid key to next')
-        return nextkey

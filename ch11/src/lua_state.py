@@ -406,11 +406,11 @@ class LuaState:
 
     def run_lua_closure(self):
         while True:
-            pc = self.get_pc() + 1
+            # pc = self.get_pc() + 1
             inst = Instruction(self.fetch())
             inst.execute(self)
-            print('(%3d) [%02d] %-12s ' % (self.time, pc, inst.op_name()), end='')
-            self.print_stack()
+            # print('(%3d) [%02d] %-12s ' % (self.time, pc, inst.op_name()), end='')
+            # self.print_stack()
             self.time += 1
             if inst.op_code() == OpCode.RETURN:
                 break
@@ -562,14 +562,3 @@ class LuaState:
             metamethod = self.get_metafield(b, name)
         return metamethod
 
-    def next(self, idx):
-        t = self.stack.get(idx)
-        if isinstance(t, LuaTable):
-            key = self.stack.pop()
-            nextkey = t.next_key(key)
-            if nextkey:
-                self.stack.push(nextkey)
-                self.stack.push(t.get(nextkey))
-                return True
-            return False
-        raise Exception("table expected!")

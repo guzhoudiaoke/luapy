@@ -510,27 +510,6 @@ def settabup(inst, vm):
     vm.set_table(lua_upvalue_index(a))
 
 
-# if R(A+1) ~= nil then {
-#   R(A)=R(A+1); pc += sBx
-# }
-def tforcall(inst, vm):
-    a, _, c = inst.a_b_c()
-    a += 1
-    push_func_and_args(a, 3, vm)
-    vm.call(2, c)
-    pop_results(a+3, c+1, vm)
-
-
-# R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
-def tforloop(inst, vm):
-    a, sbx = inst.a_sbx()
-    a += 1
-
-    if not vm.is_nil(a+1):
-        vm.copy(a+1, a)
-        vm.add_pc(sbx)
-
-
 op_codes = [
     #      T  A  B       C       mode   name        action
     OpCode(0, 1, OpArgR, OpArgN, IABC,  "MOVE    ", move),      # R(A) := R(B)
@@ -574,8 +553,8 @@ op_codes = [
     OpCode(0, 0, OpArgU, OpArgN, IABC,  "RETURN  ", luaret),    # return R(A), ... ,R(A+B-2)
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "FORLOOP ", forloop),   # R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }
     OpCode(0, 1, OpArgR, OpArgN, IAsBx, "FORPREP ", forprep),   # R(A)-=R(A+2); pc+=sBx
-    OpCode(0, 0, OpArgN, OpArgU, IABC,  "TFORCALL", tforcall),  # R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
-    OpCode(0, 1, OpArgR, OpArgN, IAsBx, "TFORLOOP", tforloop),  # if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }
+    OpCode(0, 0, OpArgN, OpArgU, IABC,  "TFORCALL", None),      # R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
+    OpCode(0, 1, OpArgR, OpArgN, IAsBx, "TFORLOOP", None),      # if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }
     OpCode(0, 0, OpArgU, OpArgU, IABC,  "SETLIST ", setlist),   # R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
     OpCode(0, 1, OpArgU, OpArgN, IABx,  "CLOSURE ", closure),   # R(A) := closure(KPROTO[Bx])
     OpCode(0, 1, OpArgU, OpArgN, IABC,  "VARARG  ", vararg),    # R(A), R(A+1), ..., R(A+B-2) = vararg
