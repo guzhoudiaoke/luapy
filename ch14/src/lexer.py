@@ -4,15 +4,14 @@ import re
 
 class Lexer:
     re_new_line = re.compile(r"\r\n|\n\r|\n|\r")
-    re_identifier = re.compile(r"^[_\d\w]+")
-    re_opening_long_bracket = re.compile(r"^\[=*\[")
-    re_short_string = re.compile(r"(?s)(^'(\\\\|\\'|\\\n|\\z\s*|[^'\n])*')|(^\"(\\\\|\\\"|\\\n|\\z\s*|[^\"\n])*\")")
-    re_number = re.compile(r"^0[xX][0-9a-fA-F]*(\.[0-9a-fA-F]*)?([pP][+\-]?[0-9]+)?|"
-                           r"^[0-9]*(\.[0-9]*)?([eE][+\-]?[0-9]+)?")
+    re_identifier = r"^[_\d\w]+"
+    re_opening_long_bracket = r"^\[=*\["
+    re_short_string = r"(?s)(^'(\\\\|\\'|\\\n|\\z\s*|[^'\n])*')|(^\"(\\\\|\\\"|\\\n|\\z\s*|[^\"\n])*\")"
+    re_number = r"^0[xX][0-9a-fA-F]*(\.[0-9a-fA-F]*)?([pP][+\-]?[0-9]+)?|^[0-9]*(\.[0-9]*)?([eE][+\-]?[0-9]+)?"
 
-    re_dec_escape_seq = re.compile(r"^\\[0-9]{1,3}")
-    re_hex_escape_seq = re.compile(r"^\\x[0-9a-fA-F]{2}")
-    re_unicode_escape_seq = re.compile(r"^\\u{[0-9a-fA-F]+}")
+    re_dec_escape_seq = r"^\\[0-9]{1,3}"
+    re_hex_escape_seq = r"^\\x[0-9a-fA-F]{2}"
+    re_unicode_escape_seq = r"^\\u\{[0-9a-fA-F]+\}"
 
     def __init__(self, chunk, chunk_name):
         self.chunk = chunk
@@ -22,37 +21,7 @@ class Lexer:
         self.next_token_kind = None
         self.next_token_line = 0
 
-    def get_line(self):
-        return self.line
-
-    def get_next_token_of_kind(self, k):
-        line, kind, token = self.get_next_token()
-        if k != kind:
-            err = 'unexpected symbol near "{0}"'.format(token)
-            self.error(err)
-        return line, token
-
-    def get_next_identifier(self):
-        return self.get_next_token_of_kind(TokenKind.IDENTIFIER)
-
-    def look_ahead(self):
-        if self.next_token_line > 0:
-            return self.next_token_kind
-        current_line = self.line
-        line, kind, token = self.get_next_token()
-        self.line = current_line
-        self.next_token_kind = kind
-        self.next_token_line = line
-        self.next_token = token
-        return kind
-
     def get_next_token(self):
-        if self.next_token_line > 0:
-            line, kind, token = self.next_token_line, self.next_token_kind, self.next_token
-            self.line = self.next_token_line
-            self.next_token_line = 0
-            return line, kind, token
-
         self.skip_space()
         if len(self.chunk) == 0:
             return self.line, TokenKind.EOF, 'EOF'
@@ -138,8 +107,7 @@ class Lexer:
             else:
                 return self.line, TokenKind.IDENTIFIER, token
 
-        err = 'unexpected symbol near "{0}"'.format(c)
-        self.error(err)
+        self.error('unexpected symbol near "%s"', c)
 
     def next(self, n):
         self.chunk = self.chunk[n:]
@@ -148,7 +116,7 @@ class Lexer:
         return self.chunk.startswith(s)
 
     def error(self, f, *args):
-        err = f.format(args)
+        err = f.format(*args)
         err = '{0}:{1}: {2}'.format(self.chunk_name, self.line, err)
         raise Exception(err)
 
@@ -206,7 +174,7 @@ class Lexer:
     def scan_long_string(self):
         m_open = re.match(Lexer.re_opening_long_bracket, self.chunk)
         if m_open is None:
-            self.error('invalid long string delimiter near "%s"'.format(self.chunk[0:2]))
+            self.error('invalid long string delimiter near "%s"' % self.chunk[0:2])
 
         str_open = m_open.group()
         str_close = str_open.replace('[', ']')
@@ -295,7 +263,7 @@ class Lexer:
                         ret += str(chr(d))
                         s = s[len(m.group()):]
                         continue
-                    self.error('decimal escape too large near "%s"'.format(m.group()))
+                    self.error('decimal escape too large near "%s"' % m.group())
             elif s[1] == 'x':
                 m = re.match(Lexer.re_hex_escape_seq, s)
                 if m:
@@ -313,7 +281,7 @@ class Lexer:
                         ret += str(chr(d))
                         s = s[len(m.group()):]
                         continue
-                    self.error('UTF-8 value too large near "%s"'.format(str_unicode))
+                    self.error('UTF-8 value too large near "%s"' % str_unicode)
             elif s[1] == 'z':
                 s = s[2:]
                 while len(s) > 0 and Lexer.is_white_space(s[0]):
