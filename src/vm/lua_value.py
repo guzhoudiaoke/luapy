@@ -1,11 +1,11 @@
-from src.vm.lua_type import LuaType
+from vm.lua_type import LuaType
 
 
 class LuaValue:
     @staticmethod
     def type_of(val):
-        from src.vm.lua_table import LuaTable
-        from src.vm.closure import Closure
+        from vm.lua_table import LuaTable
+        from vm.closure import Closure
         if val is None:
             return LuaType.NIL
         elif isinstance(val, bool):

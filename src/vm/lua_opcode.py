@@ -1,8 +1,8 @@
-from src.vm.arith_op import ArithOp
-from src.vm.cmp_op import CmpOp
-from src.vm.lua_type import LuaType
-from src.vm.lua_value import LuaValue
-from src.vm.consts import Consts
+from vm.arith_op import ArithOp
+from vm.cmp_op import CmpOp
+from vm.lua_type import LuaType
+from vm.lua_value import LuaValue
+from vm.consts import Consts
 
 
 # OpMode

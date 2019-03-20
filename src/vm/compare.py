@@ -1,5 +1,5 @@
-from src.vm.lua_table import LuaTable
-from src.vm.lua_value import LuaValue
+from vm.lua_table import LuaTable
+from vm.lua_value import LuaValue
 
 
 class Compare:

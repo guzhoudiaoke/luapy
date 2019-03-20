@@ -1,6 +1,6 @@
-from src.vm.upvalue import Upvalue
-from src.vm.local_var import LocalVar
-from src.vm.lua_opcode import Instruction
+from vm.upvalue import Upvalue
+from vm.local_var import LocalVar
+from vm.lua_opcode import Instruction
 
 
 class Prototype:
@@ -68,7 +68,9 @@ class Prototype:
     def read_protos(self, br, parent_source):
         self.protos = []
         for i in range(br.read_uint32()):
-            self.protos.append(Prototype(br, parent_source))
+            proto = Prototype()
+            proto.init_from_br(br, parent_source)
+            self.protos.append(proto)
 
     def read_line_info(self, br):
         self.line_infos = []

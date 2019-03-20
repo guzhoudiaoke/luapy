@@ -1,4 +1,4 @@
-from src.vm.consts import Consts
+from vm.consts import Consts
 
 
 class LuaStack:

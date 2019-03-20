@@ -1,6 +1,6 @@
-from src.compiler.parser.parser import Parser
-from src.compiler.lexer.lexer import Lexer
-from src.compiler.codegen.codegen import Codegen
+from compiler.parser import Parser
+from compiler.lexer import Lexer
+from compiler.codegen import Codegen
 
 
 class LuaCompiler:

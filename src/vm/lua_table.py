@@ -1,5 +1,5 @@
 import collections
-from src.vm.lua_value import LuaValue
+from vm.lua_value import LuaValue
 
 
 class LuaTable:

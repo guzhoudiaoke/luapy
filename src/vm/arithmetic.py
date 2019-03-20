@@ -1,6 +1,6 @@
 from collections import namedtuple
-from src.vm.lua_value import LuaValue
-from src.vm.arith_op import ArithOp
+from vm.lua_value import LuaValue
+from vm.arith_op import ArithOp
 
 
 def add(a, b):

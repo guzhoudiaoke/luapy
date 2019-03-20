@@ -1,18 +1,18 @@
-from src.vm.lua_stack import LuaStack
-from src.vm.lua_type import LuaType
-from src.vm.lua_value import LuaValue
-from src.vm.arith_op import ArithOp
-from src.vm.arithmetic import Arithmetic
-from src.vm.cmp_op import CmpOp
-from src.vm.compare import Compare
-from src.vm.lua_table import LuaTable
-from src.binchunk.binary_chunk import BinaryChunk
-from src.vm.closure import Closure
-from src.vm.lua_opcode import Instruction
-from src.vm.lua_opcode import OpCode
-from src.vm.thread_state import ThreadStatus
-from src.vm.consts import Consts
-from src.compiler.lua_compiler import LuaCompiler
+from vm.lua_stack import LuaStack
+from vm.lua_type import LuaType
+from vm.lua_value import LuaValue
+from vm.arith_op import ArithOp
+from vm.arithmetic import Arithmetic
+from vm.cmp_op import CmpOp
+from vm.compare import Compare
+from vm.lua_table import LuaTable
+from bin_chunk.binary_chunk import BinaryChunk
+from vm.closure import Closure
+from vm.lua_opcode import Instruction
+from vm.lua_opcode import OpCode
+from vm.thread_state import ThreadStatus
+from vm.consts import Consts
+from compiler.lua_compiler import LuaCompiler
 
 
 class LuaState:
@@ -418,8 +418,8 @@ class LuaState:
             pc = self.get_pc() + 1
             inst = Instruction(self.fetch())
             inst.execute(self)
-            # print('(%3d) [%02d] %-12s ' % (self.time, pc, inst.op_name()), end='')
-            # self.print_stack()
+            print('(%3d) [%02d] %-12s ' % (self.time, pc, inst.op_name()), end='')
+            self.print_stack()
             self.time += 1
             if inst.op_code() == OpCode.RETURN:
                 break
